@@ -1,0 +1,74 @@
+<html>
+
+<head>
+  <style>
+    body {
+      background-color: black;
+    }
+
+    main {
+      display: grid;
+
+      height: 100vh;
+      width: 100vw;
+      position: fixed;
+
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+
+    .video-wrapper {
+      width: calc(100vw / var(--video-column));
+      height: calc(100vh / var(--video-row));
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+
+<body>
+  <main />
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const columnCount = Number.parseInt(urlParams.get('column')) ? Number.parseInt(urlParams.get('column')) : 2;
+    const rowCount = Number.parseInt(urlParams.get('row')) ? Number.parseInt(urlParams.get('row')) : 2;
+
+    console.log([columnCount, rowCount]);
+
+    const gridtemplateColumnValue = (new Array(columnCount).fill('auto').reduce((old, now) => (old + ' ' + now)));
+    const gridtemplateRowValue = (new Array(rowCount).fill('auto').reduce((old, now) => (old + ' ' + now)));
+
+    const main = Array.from(document.getElementsByTagName('main'))[0];
+    main.setAttribute(
+      'style',
+      `grid-template-columns: ${gridtemplateColumnValue};grid-template-rows: ${gridtemplateRowValue};`
+    );
+
+    const videos = window.prompt('Video URLs? Split each video with ;;; and no spacing.').split(";;;");
+    Array.from(document.getElementsByTagName('video'));
+
+    if (videos.length !== (columnCount * rowCount)) {
+      window.alert(`Expecting ${columnCount * rowCount} URLs, but received ${videos.length}.`);
+      document.location.reload();
+    };
+
+    videos.map(link => {
+      main.innerHTML += `
+      <div class="video-wrapper" style="--video-column: ${columnCount};--video-row: ${rowCount}">
+      <video autoplay controls>
+        <source src="${link}" type="video/mp4" />
+      </video>
+      </div>
+      `
+    })
+
+  </script>
+</body>
+
+</html>
