@@ -1,6 +1,7 @@
 <html>
 
 <head>
+  <title>Multi Video Player</title>
   <style>
     body {
       background-color: black;
@@ -8,11 +9,9 @@
 
     main {
       display: grid;
-
-      height: 100vh;
-      width: 100vw;
       position: fixed;
-
+      width: 100vw;
+      height: 100vh;
       top: 0;
       bottom: 0;
       left: 0;
@@ -29,66 +28,150 @@
       height: 100%;
       object-fit: cover;
     }
+
+    *:focus {
+      outline: none;
+    }
   </style>
 </head>
 
 <body>
   <main />
   <script>
+    // There are 3 URL params. colummn and row are self-explanatory, random for randomly laying out the videos
+    // getting URL params
     const urlParams = new URLSearchParams(window.location.search);
     const columnCount = Number.parseInt(urlParams.get('column')) ? Number.parseInt(urlParams.get('column')) : 2;
     const rowCount = Number.parseInt(urlParams.get('row')) ? Number.parseInt(urlParams.get('row')) : 2;
-
-    console.log([columnCount, rowCount]);
+    const initialRandomArrangement = (urlParams.get('random') === 'true');
 
     const gridtemplateColumnValue = (new Array(columnCount).fill('auto').reduce((old, now) => (old + ' ' + now)));
     const gridtemplateRowValue = (new Array(rowCount).fill('auto').reduce((old, now) => (old + ' ' + now)));
 
+    // printing the players layout
+    console.info([columnCount, rowCount]);
+
+    // configuring the grid layout
     const main = Array.from(document.getElementsByTagName('main'))[0];
     main.setAttribute(
       'style',
       `grid-template-columns: ${gridtemplateColumnValue};grid-template-rows: ${gridtemplateRowValue};`
     );
 
-    const videos = window.prompt('Video URLs? Split each video with ;;; and no spacing.').split(";;;");
-    Array.from(document.getElementsByTagName('video'));
+    // getting video URLs
+    const videos = window.prompt(`Provide ${columnCount * rowCount} video URLs
+Split each video with ;;; and no spacing.
+\ne.g\nhttp://127.0.0.1/movie-1.mp4;;;http://127.0.0.1/movie-2.mp4
+\nPress h for keyboard shortcuts`).split(";;;");
 
+    // throwing issue
     if (videos.length !== (columnCount * rowCount)) {
       window.alert(`Expecting ${columnCount * rowCount} URLs, but received ${videos.length}.`);
       document.location.reload();
     };
 
-    videos.map(link => {
+    // adding video nodes to html
+    const reorderVideos = initialRandomArrangement ? shuffleArray : Array.from;
+    reorderVideos(videos).map(link => {
+      console.log(link);
       main.innerHTML += `
-      <div class="video-wrapper" style="--video-column: ${columnCount};--video-row: ${rowCount}">
-      <video autoplay controls>
-        <source src="${link}" type="video/mp4" />
-      </video>
-      </div>
+<div class="video-wrapper" style="--video-column: ${columnCount};--video-row: ${rowCount}">
+  <video autoplay controls><source src="${link}" type="video/mp4" /></video>
+</div>
       `
     });
 
+    // control window level controls
+    document.addEventListener('keydown', (event) => {
+      switch (event?.key) {
+        case 'h': showKeyboardShortcut(); break;
+        case 'f': toggleFullScreen(); break;
+      }
+    });
+
+    // control all players
     document.addEventListener('keydown', (event) => {
       Array.from(main.getElementsByTagName('video')).map(player => {
         switch (event?.key) {
-          case 'p': // pause
-            player.pause();
-            break;
-          case 'o': // play
-            player.play();
-            break;
-          case 'n': // unmute
-            player.volume = 1;
-            break;
-          case 'm': // mute
-            player.volume = 0;
-            break;
-          case 'r':
-            player.currentTime = Math.random() * player.duration;
+          case 'r': player.currentTime = getSegmentedRandom(player.duration, videos.length * 2); break; // jump to random random
+          case 'n': player.volume = 1; break; // unmute
+          case 'm': player.volume = 0; break; // mute
+          case 'p': player.pause(); break; // pause
+          case 'o': player.play(); break; //play
+          case 'c': // switch crop mode
+            player.style.objectFit === 'contain' ? player.style.objectFit = 'cover' : player.style.objectFit = 'contain';
             break;
         }
       });
     });
+
+    // control specific player
+    document.addEventListener('wheel', throttle((event) => {
+      const mouseCompensateY = event.deltaY % 100 === 0 ? 100 : 1;
+      const mouseCompensateX = event.deltaX % 100 === 0 ? 100 : 1;
+      try {
+        // adjust volume
+        event.target.volume -= (event.deltaY / mouseCompensateY / 10);
+      } catch (_exception) {
+        // do nothing
+      }
+
+      if (event.deltaX !== 0) {
+        // adjust scrubbing
+        const scrubTime = Math.floor(event.deltaX / mouseCompensateX / 10); event.target.currentTime -= (scrubTime === 0 ? 1 : scrubTime);
+      }
+
+    }));
+
+    /* === utils === */
+    function throttle(func, wait = 10) {
+      var timeout;
+
+      return function executedFunction() {
+        var context = this;
+        var args = arguments;
+        var later = function () {
+          timeout = null;
+        };
+        var callNow = !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+      };
+    };
+
+    // immutable array shuffle
+    function shuffleArray(array) {
+      const initialClone = [...array];
+      return (new Array(array.length).fill(true)).map(() => {
+        return initialClone.splice(Math.floor(Math.random() * initialClone.length - 1), 1)[0];
+      });
+    }
+
+    function getSegmentedRandom(duration, segmentCount = 10) {
+      return ((Math.floor(Math.random() * segmentCount) / segmentCount + (Math.random() / segmentCount / segmentCount)) * duration).toFixed(0);
+    }
+
+    function toggleFullScreen() {
+      document.fullscreen
+        ? document.exitFullscreen()
+        : document.getElementsByTagName('main')[0].requestFullscreen();
+    }
+
+    function showKeyboardShortcut() {
+      window.alert(`Controls that affect all video players on screen
+- H to see this menu
+- R to jump to a random timing
+- N to max volume
+- M to mute
+- P to pause
+- O to play
+- C to switch crop mode between cover and contained
+
+Controls that affect only the current video player you are hovering over
+- scroll up/down to change volume
+- scroll left/right to scrub through the video`);
+    }
 
   </script>
 </body>
