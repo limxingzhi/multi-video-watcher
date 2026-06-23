@@ -48,9 +48,6 @@
     const gridtemplateColumnValue = (new Array(columnCount).fill('auto').reduce((old, now) => (old + ' ' + now)));
     const gridtemplateRowValue = (new Array(rowCount).fill('auto').reduce((old, now) => (old + ' ' + now)));
 
-    // printing the players layout
-    console.info([columnCount, rowCount]);
-
     // configuring the grid layout
     const main = Array.from(document.getElementsByTagName('main'))[0];
     main.setAttribute(
@@ -59,10 +56,11 @@
     );
 
     // getting video URLs
-    const videos = window.prompt(`Provide ${columnCount * rowCount} video URLs
+    const rawInput = window.prompt(`Provide ${columnCount * rowCount} video URLs
 Split each video with ;;; and no spacing.
 \ne.g\nhttp://127.0.0.1/movie-1.mp4;;;http://127.0.0.1/movie-2.mp4
-\nPress h for keyboard shortcuts`).split(";;;");
+\nPress h for keyboard shortcuts`);
+    const videos = rawInput.split(";;;");
 
     // throwing issue
     if (videos.length !== (columnCount * rowCount)) {
@@ -72,11 +70,12 @@ Split each video with ;;; and no spacing.
 
     // adding video nodes to html
     const reorderVideos = initialRandomArrangement ? shuffleArray : Array.from;
+    console.log(rawInput);
+    main.innerHTML += `<div style="position:fixed;bottom:8px;right:8px;color:#aaa;font-size:12px;z-index:999;font-family:sans-serif;text-align:right;word-break:break-all;max-width:300px;opacity:0.6;pointer-events:none">${rawInput}</div>`;
     reorderVideos(videos).map(link => {
-      console.log(link);
       main.innerHTML += `
 <div class="video-wrapper" style="--video-column: ${columnCount};--video-row: ${rowCount}">
-  <video autoplay controls><source src="${link}" type="video/mp4" /></video>
+  <video autoplay controls loop><source src="${link}" type="video/mp4" /></video>
 </div>
       `
     });
@@ -93,9 +92,10 @@ Split each video with ;;; and no spacing.
     document.addEventListener('keydown', (event) => {
       Array.from(main.getElementsByTagName('video')).map(player => {
         switch (event?.key) {
-          case 'r': player.currentTime = getSegmentedRandom(player.duration, videos.length * 2); break; // jump to random random
+          case 'r': player.currentTime = getSegmentedRandom(player.duration, videos.length * 3); break; // jump to random random
           case 'n': player.volume = 1; break; // unmute
           case 'm': player.volume = 0; break; // mute
+          case '0': player.currentTime = 0; break; // reset to start
           case 'p': player.pause(); break; // pause
           case 'o': player.play(); break; //play
           case 'c': // switch crop mode
@@ -164,6 +164,7 @@ Split each video with ;;; and no spacing.
 - R to jump to a random timing
 - N to max volume
 - M to mute
+- 0 to reset all videos to start
 - P to pause
 - O to play
 - C to switch crop mode between cover and contained
