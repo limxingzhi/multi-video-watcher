@@ -103,6 +103,8 @@ Split each video with ;;; and no spacing.
           case 'c': // switch crop mode
             player.style.objectFit === 'contain' ? player.style.objectFit = 'cover' : player.style.objectFit = 'contain';
             break;
+          case 'w': player.controls = true; break; // show player controls
+          case 'e': player.controls = false; break; // hide player controls
         }
       });
     });
@@ -170,6 +172,8 @@ Split each video with ;;; and no spacing.
 - P to pause
 - O to play
 - C to switch crop mode between cover and contained
+- W to show player controls
+- E to hide player controls
 
 Controls that affect only the current video player you are hovering over
 - scroll up/down to change volume
