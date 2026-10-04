@@ -89,9 +89,12 @@ Split each video with ;;; and no spacing.
 
     // control all players
     document.addEventListener('keydown', (event) => {
-      Array.from(main.getElementsByTagName('video')).map(player => {
+      // shuffle the segments so every player jumps to its own timing
+      const segments = shuffleArray(Array.from({ length: videos.length * 3 }, (_, index) => index));
+
+      Array.from(main.getElementsByTagName('video')).map((player, index) => {
         switch (event?.key) {
-          case 'r': player.currentTime = getSegmentedRandom(player.duration, videos.length * 3); break; // jump to random random
+          case 'r': player.currentTime = getSegmentedRandom(player.duration, videos.length * 3, segments[index]); break; // jump to a unique random timing
           case 'n': player.volume = 1; break; // unmute
           case 'm': player.volume = 0; break; // mute
           case '0': player.currentTime = 0; break; // reset to start
@@ -147,8 +150,8 @@ Split each video with ;;; and no spacing.
       });
     }
 
-    function getSegmentedRandom(duration, segmentCount = 10) {
-      return ((Math.floor(Math.random() * segmentCount) / segmentCount + (Math.random() / segmentCount / segmentCount)) * duration).toFixed(0);
+    function getSegmentedRandom(duration, segmentCount = 10, segment = Math.floor(Math.random() * segmentCount)) {
+      return (segment / segmentCount + (Math.random() / segmentCount / segmentCount)) * duration;
     }
 
     function toggleFullScreen() {
